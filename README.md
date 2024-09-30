@@ -40,7 +40,6 @@ To run this project, ensure you have the following Python packages installed:
 1. Clone the repository or download the source code:
    ```bash
    git clone https://github.com/ociepkam/IAF_checker_2.git
-   cd <project-directory>
    ```
 
 2. Install the necessary dependencies using pip:
@@ -54,7 +53,6 @@ To run this project, ensure you have the following Python packages installed:
 - **`projects_configs/`**: Contains configuration files for various EEG analysis projects. These files define the settings for analyzing EEG data. The folder includes an example configuration file `example.yaml`.
 - **`results/`**: This folder is where analysis results will be saved for each project.
 - **`main.py`**: The main Python script that runs the entire IAF analysis tool.
-- **`check IAF.bat`**: A Windows batch file to quickly launch the application.
 - **`README.md`**: Documentation for the project.
 - **`requirements.txt`**: A list of Python dependencies for the project.
 
@@ -77,7 +75,7 @@ To run this project, ensure you have the following Python packages installed:
 
 ## Configuration
 
-A configuration file (`config.yaml`) is required for the application to run properly. It should be placed in the `projects_configs` directory. Below is a sample configuration structure:
+A creation of configuration file (`<name>.yaml`) is required for the application to run properly. It should be placed in the `projects_configs` directory. Below is a sample configuration structure:
 
 ```yaml
 browse_directory: example_EEG_data\
