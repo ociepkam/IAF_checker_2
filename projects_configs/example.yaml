@@ -1,0 +1,15 @@
+browse_directory: example_EEG_data\
+eeg_file_type: set
+file_choice: random # Options:
+                  #   list: automatically choose files by name from not analysed
+                  #   random: choose random file not analysed
+                  #   choice: browser folder to choose file
+
+results_file: results\example_results.csv
+user_list: [User1, User2, User3]
+
+crop_data: {beginning: 1, end: 1} # in s
+iaf_range: [7, 14] # in Hz
+channels: ["P7", "P5", "P3", "P1", "Pz", "P2", "P4", "P6", "P8", "PO7", "PO3", "POz", "PO4", "PO8"]
+
+psd_draw_range: {min: 2, max: 30}
