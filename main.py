@@ -265,6 +265,8 @@ def calculate_iaf(file_name: str, config: Dict) -> Tuple[Optional[float], Option
         tuple: (iaf, certainty, psds, freqs) containing the calculated IAF, certainty, PSDs, and frequencies.
     """
     data = load_file(file_name=file_name)
+    print(data.info)
+    print(type(data))
     freq = data.info["sfreq"]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
@@ -387,7 +389,12 @@ def create_app_layout(config: Dict, user_name: str) -> dash.Dash:
             html.Button('Submit', id='submit-button', n_clicks=0),
             html.Button('Next', id='next-button', n_clicks=0),
             html.Div(id='output-text')
+        ], style={'width': '100%', 'textAlign': 'center'}),
+
+        html.Div([
+            dcc.Input(id='input-text-extra', type='text', value='', placeholder='Extra info'),
         ], style={'width': '100%', 'textAlign': 'center'})
+
     ])
     return app
 
@@ -404,16 +411,18 @@ def register_callbacks(app: dash.Dash):
         [Output('graph', 'figure'),
          Output('output-text', 'children'),
          Output('input-text', 'value'),
+         Output('input-text-extra', 'value'),
          Output('participant-id', 'data')],
         [Input('next-button', 'n_clicks'),
          Input('submit-button', 'n_clicks')],
         [State('input-text', 'value'),
+         State('input-text-extra', 'value'),
          State('config', 'data'),
          State('user-name', 'data'),
          State('participant-id', 'data')]
     )
-    def update_plot_or_save(_next_clicks: int, submit_clicks: int, value: str, config: Dict, user_name: str, participant_id: str) -> Tuple[
-        go.Figure, str, str, str]:
+    def update_plot_or_save(_next_clicks: int, submit_clicks: int, value: str, extra_info: str, config: Dict, user_name: str, participant_id: str) \
+            -> Tuple[go.Figure, str, str, str, str]:
         """
         Update the plot or save data based on user input.
 
@@ -421,12 +430,13 @@ def register_callbacks(app: dash.Dash):
             _next_clicks (int): Number of clicks on the Next button (not used in this function).
             submit_clicks (int): Number of clicks on the Submit button.
             value (str): The current value in the input text field.
+            extra_info (str): Extra information added by user
             config (dict): Configuration data.
             user_name (str): The name of the user.
             participant_id (str): The ID of the participant.
 
         Returns:
-            tuple: (updated figure, output text, input value, participant id).
+            tuple: (updated figure, output text, output extra info, input value, participant id).
         """
         ctx = dash.callback_context
 
@@ -434,14 +444,15 @@ def register_callbacks(app: dash.Dash):
             if submit_clicks > 0 and value:
                 iaf_results = open_result_file(config["results_file"])
                 iaf_results.loc[iaf_results['ID'] == participant_id, user_name] = value
+                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_info"] = extra_info
                 iaf_results.to_csv(config["results_file"], index=False)
-                return dash.no_update, f'The value "{value}" has been saved to the file.', value, dash.no_update
+                return dash.no_update, f'The value "{value}" has been saved to the file.', value, extra_info, dash.no_update
 
         if ctx.triggered and 'next-button' in ctx.triggered[0]['prop_id']:
             participant_id, iaf, certainty, psds, freqs = prepare_person_data(config, user_name)
-            return draw_plot(iaf, certainty, psds, freqs, participant_id), '', '', participant_id  # Clear input text
+            return draw_plot(iaf, certainty, psds, freqs, participant_id), '', '', '', participant_id  # Clear input text
 
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def main():

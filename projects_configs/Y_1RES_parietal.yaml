@@ -1,0 +1,15 @@
+browse_directory: <path_to_data>
+eeg_file_type: cleaned.set
+file_choice: random # Options:
+                  #   list: automatically choose files by name from not analysed
+                  #   random: choose random file not analysed
+                  #   choice: browser folder to choose file
+
+results_file: results\Y_1RES.csv
+user_list: [<users_list>]
+
+crop_data: {beginning: 0.5, end: 0.5} # in s
+iaf_range: [7, 14] # in Hz
+channels: ["P7", "P5", "P3", "P1", "Pz", "P2", "P4", "P6", "P8", "PO7", "PO3", "POz", "PO4", "PO8"]
+
+psd_draw_range: {min: 2, max: 30}
