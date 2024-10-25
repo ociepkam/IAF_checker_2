@@ -145,7 +145,7 @@ def files_to_choose(config: Dict, user_name: str) -> List[str]:
     files = [file for file in files if file.endswith(config["eeg_file_type"])]
     files = [file for file in files if
              file.split(".")[0] not in iaf_results['ID'].tolist() or
-             pd.isna(iaf_results.loc[iaf_results['ID'] == file.split(".")[0], user_name].values[0])]
+             pd.isna(iaf_results.loc[iaf_results['ID'] == file.split(".")[0], f"{user_name}_IAF"].values[0])]
     if not files:
         root = tk.Tk()
         root.withdraw()  # Hide the root window
@@ -380,22 +380,48 @@ def create_app_layout(config: Dict, user_name: str) -> dash.Dash:
         dcc.Store(id='user-name', data=user_name),
         dcc.Store(id='participant-id', data=participant_id),
 
+        # Graph section at the top
         html.Div([
-            dcc.Graph(id='graph', figure=draw_plot(iaf, certainty, psds, freqs, participant_id), style={'height': '800px'})
+            dcc.Graph(id='graph', figure=draw_plot(iaf, certainty, psds, freqs, participant_id), style={'height': '700px'})
         ], style={'width': '100%', 'margin-bottom': '20px'}),
 
+        # Rows of inputs and labels
         html.Div([
-            dcc.Input(id='input-text', type='text', value='', placeholder='Enter value'),
-            html.Button('Submit', id='submit-button', n_clicks=0),
-            html.Button('Next', id='next-button', n_clicks=0),
-            html.Div(id='output-text')
-        ], style={'width': '100%', 'textAlign': 'center'}),
+            # Row 1: IAF and input
+            html.Div([
+                html.Label("IAF 8-13Hz:", style={'width': '100px', 'margin-right': '10px'}),
+                dcc.Input(id='input-iaf', type='text', placeholder="alpha pick")
+            ], style={'display': 'flex', 'align-items': 'left', 'margin-bottom': '10px'}),
 
-        html.Div([
-            dcc.Input(id='input-text-extra', type='text', value='', placeholder='Extra info'),
-        ], style={'width': '100%', 'textAlign': 'center'})
+            # Row 2: ITF and input
+            html.Div([
+                html.Label("ITF 4-7Hz:", style={'width': '100px', 'margin-right': '10px'}),
+                dcc.Input(id='input-itf', type='text', placeholder="theta pick")
+            ], style={'display': 'flex', 'align-items': 'left', 'margin-bottom': '10px'}),
 
+            # Row 3: IBF and input
+            html.Div([
+                html.Label("IBF 14-26Hz:", style={'width': '100px', 'margin-right': '10px'}),
+                dcc.Input(id='input-ibf', type='text', placeholder="beta pick")
+            ], style={'display': 'flex', 'align-items': 'left', 'margin-bottom': '10px'}),
+
+            # Row 4: Extra info and comment input
+            html.Div([
+                html.Label("Extra info:", style={'width': '100px', 'margin-right': '10px'}),
+                dcc.Input(id='input-comment', type='text', placeholder="comment")
+            ], style={'display': 'flex', 'align-items': 'left', 'margin-bottom': '10px'}),
+
+            # Row 5: Submit and Next buttons
+            html.Div([
+                html.Button('Submit', id='submit-button', n_clicks=0, style={'margin-right': '10px'}),
+                html.Button('Next', id='next-button', n_clicks=0)
+            ], style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center', 'margin-top': '20px'}),
+
+            # Save text
+            html.Div(id='output-save-text', style={'margin-top': '10px', 'textAlign': 'center'})
+        ], style={'width': '100%', 'textAlign': 'center', 'max-width': '400px', 'margin': '0 auto'})  # Center alignment
     ])
+
     return app
 
 
@@ -409,50 +435,58 @@ def register_callbacks(app: dash.Dash):
 
     @app.callback(
         [Output('graph', 'figure'),
-         Output('output-text', 'children'),
-         Output('input-text', 'value'),
-         Output('input-text-extra', 'value'),
+         Output('output-save-text', 'children'),
+         Output('input-iaf', 'value'),
+         Output('input-itf', 'value'),
+         Output('input-ibf', 'value'),
+         Output('input-comment', 'value'),
          Output('participant-id', 'data')],
         [Input('next-button', 'n_clicks'),
          Input('submit-button', 'n_clicks')],
-        [State('input-text', 'value'),
-         State('input-text-extra', 'value'),
+        [State('input-iaf', 'value'),
+         State('input-itf', 'value'),
+         State('input-ibf', 'value'),
+         State('input-comment', 'value'),
          State('config', 'data'),
          State('user-name', 'data'),
          State('participant-id', 'data')]
     )
-    def update_plot_or_save(_next_clicks: int, submit_clicks: int, value: str, extra_info: str, config: Dict, user_name: str, participant_id: str) \
-            -> Tuple[go.Figure, str, str, str, str]:
+    def update_plot_or_save(_next_clicks: int, submit_clicks: int, iaf: str, itf: str, ibf: str, comment: str, config: Dict, user_name: str,
+                            participant_id: str) -> Tuple[go.Figure, str, str, str, str, str, str]:
         """
         Update the plot or save data based on user input.
 
         Args:
             _next_clicks (int): Number of clicks on the Next button (not used in this function).
             submit_clicks (int): Number of clicks on the Submit button.
-            value (str): The current value in the input text field.
-            extra_info (str): Extra information added by user
+            iaf (str): The current IAF value in the input text field.
+            itf (str): The current ITF value in the input text field.
+            ibf (str): The current IBF value in the input text field.
+            comment (str): Extra information added by user
             config (dict): Configuration data.
             user_name (str): The name of the user.
             participant_id (str): The ID of the participant.
 
         Returns:
-            tuple: (updated figure, output text, output extra info, input value, participant id).
+            tuple: (updated figure, output-save-text, iaf, itf, ibf, comment, participant id).
         """
         ctx = dash.callback_context
 
         if ctx.triggered and 'submit-button' in ctx.triggered[0]['prop_id']:
-            if submit_clicks > 0 and value:
+            if submit_clicks > 0 and iaf:
                 iaf_results = open_result_file(config["results_file"])
-                iaf_results.loc[iaf_results['ID'] == participant_id, user_name] = value
-                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_info"] = extra_info
+                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_IAF"] = iaf
+                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_ITF"] = itf
+                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_IBF"] = ibf
+                iaf_results.loc[iaf_results['ID'] == participant_id, f"{user_name}_comment"] = comment
                 iaf_results.to_csv(config["results_file"], index=False)
-                return dash.no_update, f'The value "{value}" has been saved to the file.', value, extra_info, dash.no_update
+                return dash.no_update, f'IAF: {iaf}, ITF: {itf}, IBF: {ibf} has been saved to the file.', iaf, itf, ibf, comment, dash.no_update
 
         if ctx.triggered and 'next-button' in ctx.triggered[0]['prop_id']:
             participant_id, iaf, certainty, psds, freqs = prepare_person_data(config, user_name)
-            return draw_plot(iaf, certainty, psds, freqs, participant_id), '', '', '', participant_id  # Clear input text
+            return draw_plot(iaf, certainty, psds, freqs, participant_id), '', '', '', '', '', participant_id  # Clear input text
 
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def main():
@@ -461,14 +495,8 @@ def main():
     This function handles loading configurations, user selections, and initializing the Dash app.
     """
     proj_name = box_choose_user(user_list=os.listdir("projects_configs"), title="Choose project")
-
     config = load_config(proj_name=proj_name)
-    iaf_results = open_result_file(config["results_file"])
-
     user_name = box_choose_user(user_list=config["user_list"], title="Choose user")
-    if user_name not in iaf_results.columns:
-        iaf_results[user_name] = ""
-        iaf_results.to_csv(config["results_file"], index=False)
 
     app = create_app_layout(config=config, user_name=user_name)
     register_callbacks(app=app)
